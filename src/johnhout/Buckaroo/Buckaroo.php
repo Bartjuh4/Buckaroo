@@ -39,6 +39,12 @@ class Buckaroo {
 	public static $redirectUrl = false;
 
 	/**
+	 * Custom params to add to the payment request
+	 * @var type 
+	 */
+	public $customParams = null;
+
+	/**
 	 * Retrieving transaction data with a given Invoice number.
 	 *
 	 * @param $invoiceId
@@ -271,11 +277,11 @@ class Buckaroo {
 		return $values;
 	}
 
-	public function payment($invoice_id, $amount, $description = '', $method, $method_extra = false)
+	public function payment($order_id, $amount, $description = '', $method, $method_extra = false)
 	{
 		$this->TransactionRequest = new \johnhout\Buckaroo\Request(Config::get('buckaroo::website_key'));
 
-		$invoice_id = str_pad($invoice_id, 8, '0', STR_PAD_LEFT);
+		$invoice_id = str_pad($order_id, 8, '0', STR_PAD_LEFT);
 
 		$TransactionRequest = new SOAP\Body();
 		$TransactionRequest->Currency = Config::get('buckaroo::currency');
@@ -285,11 +291,10 @@ class Buckaroo {
 		$TransactionRequest->ReturnURL = Config::get('buckaroo::return_url');
 		$TransactionRequest->StartRecurrent = Config::get('buckaroo::start_recurrent');
 
-		$customParameters = array(
-			'CustomerID' => 1
+		$this->customParams = array(
+			'sessionId' => \Session::getId(),
+			'orderId' => $order_id
 		);
-
-		$TransactionRequest = $this->_addCustomParameters($TransactionRequest, $customParameters);
 
 		$TransactionRequest->Services = new SOAP\Services();
 
@@ -304,6 +309,10 @@ class Buckaroo {
 			case 'amex':
 				$TransactionRequest->Services->Service = new SOAP\Service($method, 'Pay', 1);
 				break;
+		}
+
+		if ($this->customParams) {
+			$TransactionRequest = $this->_addCustomParameters($TransactionRequest);
 		}
 
 		// Optionally pass the client ip-address for logging
@@ -347,10 +356,10 @@ class Buckaroo {
 		return false;
 	}
 
-	protected function _addCustomParameters(&$TransactionRequest, $customParameters)
+	protected function _addCustomParameters(&$TransactionRequest)
 	{
 		$requestParameters = array();
-		foreach ($customParameters as $fieldName => $value) {
+		foreach ($this->customParams as $fieldName => $value) {
 			if (
 					(is_null($value) || $value === '') || (
 					is_array($value) && (is_null($value['value']) || $value['value'] === '')
