@@ -1,4 +1,6 @@
-<?php namespace johnhout\Buckaroo;
+<?php
+
+namespace johnhout\Buckaroo;
 
 use johnhout\Buckaroo\SOAP\Services;
 use Whoops\Example\Exception;
@@ -14,9 +16,8 @@ use Config;
  * Tips or suggestions can be mailed to john.hout@u-lab.nl or check github.
  * Thanks to Joost Faasen from johnhout for helping the SOAP examples / client.
  */
+class Buckaroo {
 
-class Buckaroo
-{
 	/**
 	 * Returns wether the the
 	 *
@@ -32,6 +33,12 @@ class Buckaroo
 	public static $errors = array();
 
 	/**
+	 * The url to redirect if this is neccessary by Buckaroo
+	 * @var type string
+	 */
+	public static $redirectUrl = false;
+
+	/**
 	 * Retrieving transaction data with a given Invoice number.
 	 *
 	 * @param $invoiceId
@@ -42,14 +49,13 @@ class Buckaroo
 	{
 		$this->request = new \johnhout\Buckaroo\Request();
 
-		$InvoiceInfoRequest                  = new SOAP\Body();
-		$InvoiceInfoRequest->Invoice         = array();
-		$InvoiceInfoRequest->Invoice         = new \stdClass();
+		$InvoiceInfoRequest = new SOAP\Body();
+		$InvoiceInfoRequest->Invoice = array();
+		$InvoiceInfoRequest->Invoice = new \stdClass();
 		$InvoiceInfoRequest->Invoice->Number = trim($invoiceId);
-		$bpeResponse                         = $this->request->sendRequest($InvoiceInfoRequest, 'invoiceinfo');
+		$bpeResponse = $this->request->sendRequest($InvoiceInfoRequest, 'invoiceinfo');
 
-		if( isset($bpeResponse->Transactions->Transaction) )
-		{
+		if (isset($bpeResponse->Transactions->Transaction)) {
 			return $bpeResponse->Transactions->Transaction;
 		}
 
@@ -69,69 +75,54 @@ class Buckaroo
 		$orderBPEdata = Buckaroo::transactionInfo($invoice);
 
 		$transactionInfo = false;
-		if( is_array($orderBPEdata) )
-		{
-			foreach($orderBPEdata as $value)
-			{
-				if( $value->Status->Success )
-				{
+		if (is_array($orderBPEdata)) {
+			foreach ($orderBPEdata as $value) {
+				if ($value->Status->Success) {
 					$transactionInfo = $value;
 				}
 			}
-		}
-		else
-		{
-			if( $orderBPEdata->Status->Success )
-			{
+		} else {
+			if ($orderBPEdata->Status->Success) {
 				$transactionInfo = $orderBPEdata;
 			}
 		}
 
-		if( !$transactionInfo )
-		{
+		if (!$transactionInfo) {
 			self::addError('Order has not been payed yet.');
-		}
-		else
-		{
+		} else {
 			$this->request = new Request(Config::get('buckaroo::website_key'));
 
-			$RefundInfoRequest                                = new SOAP\Body();
-			$RefundInfoRequest->RefundInfo                    = array();
-			$RefundInfoRequest->RefundInfo[0]                 = new \stdClass();
+			$RefundInfoRequest = new SOAP\Body();
+			$RefundInfoRequest->RefundInfo = array();
+			$RefundInfoRequest->RefundInfo[0] = new \stdClass();
 			$RefundInfoRequest->RefundInfo[0]->TransactionKey = $transactionInfo->ID;
 
 			$BPEresponse = $this->request->sendRequest($RefundInfoRequest, 'refundinfo');
 
-			if( $amount <= $BPEresponse->RefundInfo->MaximumRefundAmount and $BPEresponse->RefundInfo->IsRefundable )
-			{
+			if ($amount <= $BPEresponse->RefundInfo->MaximumRefundAmount and $BPEresponse->RefundInfo->IsRefundable) {
 				$this->TransactionRequest = new \johnhout\Buckaroo\Request(Config::get('buckaroo::website_key'));
 
-				$TransactionRequest                         = new SOAP\Body();
-				$TransactionRequest->Currency               = $BPEresponse->RefundInfo->RefundCurrency;
-				$TransactionRequest->AmountCredit           = $amount;
-				$TransactionRequest->Invoice                = $invoice;
-				$TransactionRequest->Description            = 'Retourbetaling ' . $invoice;
+				$TransactionRequest = new SOAP\Body();
+				$TransactionRequest->Currency = $BPEresponse->RefundInfo->RefundCurrency;
+				$TransactionRequest->AmountCredit = $amount;
+				$TransactionRequest->Invoice = $invoice;
+				$TransactionRequest->Description = 'Retourbetaling ' . $invoice;
 				$TransactionRequest->OriginalTransactionKey = $transactionInfo->ID;
 
-				$TransactionRequest->Services          = new Services();
+				$TransactionRequest->Services = new Services();
 				$TransactionRequest->Services->Service = new SOAP\Service($BPEresponse->RefundInfo->ServiceCode, 'Refund', '');
 
-				if( $BPEresponse->RefundInfo->ServiceCode == 'ideal' )
-				{
+				if ($BPEresponse->RefundInfo->ServiceCode == 'ideal') {
 					$TransactionRequest->Services->Service->RequestParameter = new SOAP\RequestParameter('issuer', $transactionInfo->ID);
 				}
 
 				self::$success = true;
 
 				return $this->TransactionRequest->sendRequest($TransactionRequest, 'transaction');
-
-			}
-			else
-			{
+			} else {
 				self::addError('The maximum refund amount is to low. Or the order is not refundable.');
 			}
 		}
-
 	}
 
 	/**
@@ -143,29 +134,20 @@ class Buckaroo
 	 */
 	public function checkInvoiceForSuccess($invoiceId)
 	{
-		if( !$invoiceId )
-		{
+		if (!$invoiceId) {
 			self::addError('The maximum refund amount is to low. Or the order is not refundable.');
-		}
-		else
-		{
-			$orderBPEdata = Buckaroo::getTransactionInfo($invoiceId);
+		} else {
+			$orderBPEdata = Buckaroo::transactionInfo($invoiceId);
 
 			$transactionInfo = false;
-			if( is_array($orderBPEdata) )
-			{
-				foreach($orderBPEdata as $value)
-				{
-					if( $value->Status->Success )
-					{
+			if (is_array($orderBPEdata)) {
+				foreach ($orderBPEdata as $value) {
+					if ($value->Status->Success) {
 						$transactionInfo = $value;
 					}
 				}
-			}
-			else
-			{
-				if( $orderBPEdata->Status->Success )
-				{
+			} else {
+				if ($orderBPEdata->Status->Success) {
 					$transactionInfo = $orderBPEdata;
 				}
 			}
@@ -187,19 +169,14 @@ class Buckaroo
 	 */
 	public function createForm($dataArray, $button = null)
 	{
-		if( !$dataArray['brq_amount'] )
-		{
+		if (!$dataArray['brq_amount']) {
 			self::addError('Amount has not been set.');
-		}
-		elseif( !$dataArray['brq_invoicenumber'] )
-		{
+		} elseif (!$dataArray['brq_invoicenumber']) {
 			self::addError('Amount has not been set.');
-		}
-		else
-		{
+		} else {
 			$dataArray['bpe_signature'] = self::createSignature($dataArray);
-			$dataArray['bpe_url']       = ((Config::get('buckaroo::test_mode')) ? Config::get('buckaroo::bpe_post_test_url') : Config::get('buckaroo::bpe_post_url'));
-			$dataArray['button']        = $button;
+			$dataArray['bpe_url'] = ((Config::get('buckaroo::test_mode')) ? Config::get('buckaroo::bpe_post_test_url') : Config::get('buckaroo::bpe_post_url'));
+			$dataArray['button'] = $button;
 
 			self::$success = true;
 
@@ -218,14 +195,13 @@ class Buckaroo
 		$hashString = '';
 		// Add additional data to array
 		$data['brq_websitekey'] = Config::get('buckaroo::website_key');
-		$data['brq_currency']   = Config::get('buckaroo::currency');
-		$data['brq_culture']    = Config::get('buckaroo::culture');
-		$data['brq_return']     = Config::get('buckaroo::return_url');
+		$data['brq_currency'] = Config::get('buckaroo::currency');
+		$data['brq_culture'] = Config::get('buckaroo::culture');
+		$data['brq_return'] = Config::get('buckaroo::return_url');
 
 		ksort($data);
 
-		foreach($data as $arrKey => $arrValue)
-		{
+		foreach ($data as $arrKey => $arrValue) {
 			$hashString .= strtolower($arrKey) . '=' . $arrValue;
 		}
 
@@ -258,19 +234,104 @@ class Buckaroo
 		return self::$errors;
 	}
 
-	public function getIssuerArray() {
-		return array(
-			"ABNANL2A" => "ABN AMRO",
-			"ASNBNL21" => "ASN Bank",
-			"FRBKNL2L" => "Friesland Bank",
-			"INGBNL2A" => "ING",
-			"RABONL2U" => "Rabobank",
-			"SNSBNL2A" => "SNS Bank",
-			"RBRBNL21" => "RegioBank",
-			"TRIONL2U" => "Triodos Bank",
-			"FVLBNL22" => "Van Lanschot",
-			"KNABNL2H" => "KNAB bank"
-		);
+	public function redirectUrl()
+	{
+		return self::$redirectUrl;
+	}
+
+	public function getIssuerArray($method = 'ideal')
+	{
+		switch ($method) {
+			case 'creditcard':
+				return array(
+					'mastercard' => 'MasterCard',
+					'visa' => 'Visa'
+				);
+				break;
+			case 'ideal':
+			default:
+				return array(
+					"0031" => "ABN AMRO",
+					"0761" => "ASN Bank",
+					"0091" => "Friesland Bank",
+					"0721" => "ING",
+					"0021" => "Rabobank",
+					"0751" => "SNS Bank",
+					"0771" => "RegioBank",
+					"0511" => "Triodos Bank",
+					"0161" => "Van Lanschot",
+					"0801" => "KNAB bank"
+				);
+				break;
+		}
+	}
+
+	public function payment($amount, $method, $method_extra = false)
+	{
+		$this->TransactionRequest = new \johnhout\Buckaroo\Request(Config::get('buckaroo::website_key'));
+
+		$TransactionRequest = new SOAP\Body();
+		$TransactionRequest->Currency = Config::get('buckaroo::currency');
+		$TransactionRequest->AmountDebit = '10.00';
+		$TransactionRequest->Invoice = 'Invoice0009';
+		$TransactionRequest->Description = 'testbetaling!';
+		$TransactionRequest->ReturnURL = Config::get('buckaroo::return_url');
+		$TransactionRequest->StartRecurrent = Config::get('buckaroo::start_recurrent');
+
+		$TransactionRequest->Services = new SOAP\Services();
+
+		switch ($method) {
+			case 'ideal':
+				$TransactionRequest->Services->Service = new SOAP\Service($method, 'Pay', 1);
+				// Add parameters for this service
+				$TransactionRequest->Services->Service->RequestParameter = new SOAP\RequestParameter('issuer', $method_extra);
+				break;
+			case 'mastercard':
+			case 'visa':
+			case 'amex':
+				$TransactionRequest->Services->Service = new SOAP\Service($method, 'Pay', 1);
+				break;
+		}
+
+		// Optionally pass the client ip-address for logging
+		$TransactionRequest->ClientIP = new SOAP\IPAddress('123.123.123.123');
+
+		$response = $this->TransactionRequest->sendRequest($TransactionRequest, 'transaction');
+
+		if ($response->Status->Code) {
+			switch ($response->Status->Code->Code) {
+				case 190:
+					return true;
+					break;
+				case 790:
+					break;
+				case 791:
+					break;
+				case 490:
+				case 491:
+				case 492:
+				case 690:
+				case 792:
+				case 793:
+				case 890:
+				case 891:
+					$this->addError('Payment failed: ' . $response->Status->Code->_);
+					return false;
+					break;
+			}
+		}
+
+		if ($response->RequiredAction) {
+			switch ($response->RequiredAction->Type) {
+				case 'Redirect':
+					self::$redirectUrl = $response->RequiredAction->RedirectURL;
+					return true;
+					break;
+			}
+		}
+
+		$this->addError('Payment failed');
+		return false;
 	}
 
 }
