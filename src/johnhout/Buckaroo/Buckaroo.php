@@ -239,18 +239,19 @@ class Buckaroo {
 		return self::$redirectUrl;
 	}
 
-	public function getIssuerArray($method = 'ideal')
+	public function getIssuerArray($method = 'ideal', $option = false)
 	{
+		$values = array();
 		switch ($method) {
 			case 'creditcard':
-				return array(
+				$values = array(
 					'mastercard' => 'MasterCard',
 					'visa' => 'Visa'
 				);
 				break;
 			case 'ideal':
 			default:
-				return array(
+				$values = array(
 					"0031" => "ABN AMRO",
 					"0761" => "ASN Bank",
 					"0091" => "Friesland Bank",
@@ -264,19 +265,31 @@ class Buckaroo {
 				);
 				break;
 		}
+		if ($option) {
+			return isset($values[$option]);
+		}
+		return $values;
 	}
 
-	public function payment($amount, $method, $method_extra = false)
+	public function payment($invoice_id, $amount, $description = '', $method, $method_extra = false)
 	{
 		$this->TransactionRequest = new \johnhout\Buckaroo\Request(Config::get('buckaroo::website_key'));
 
+		$invoice_id = str_pad($invoice_id, 8, '0', STR_PAD_LEFT);
+
 		$TransactionRequest = new SOAP\Body();
 		$TransactionRequest->Currency = Config::get('buckaroo::currency');
-		$TransactionRequest->AmountDebit = '10.00';
-		$TransactionRequest->Invoice = 'Invoice0009';
-		$TransactionRequest->Description = 'testbetaling!';
+		$TransactionRequest->AmountDebit = $amount;
+		$TransactionRequest->Invoice = 'Invoice' . $invoice_id . '_' . rand(999, 99999);
+		$TransactionRequest->Description = $description;
 		$TransactionRequest->ReturnURL = Config::get('buckaroo::return_url');
 		$TransactionRequest->StartRecurrent = Config::get('buckaroo::start_recurrent');
+
+		$customParameters = array(
+			'CustomerID' => 1
+		);
+
+		$TransactionRequest = $this->_addCustomParameters($TransactionRequest, $customParameters);
 
 		$TransactionRequest->Services = new SOAP\Services();
 
@@ -294,7 +307,7 @@ class Buckaroo {
 		}
 
 		// Optionally pass the client ip-address for logging
-		$TransactionRequest->ClientIP = new SOAP\IPAddress('123.123.123.123');
+		$TransactionRequest->ClientIP = new SOAP\IPAddress(\Request::getClientIp());
 
 		$response = $this->TransactionRequest->sendRequest($TransactionRequest, 'transaction');
 
@@ -332,6 +345,37 @@ class Buckaroo {
 
 		$this->addError('Payment failed');
 		return false;
+	}
+
+	protected function _addCustomParameters(&$TransactionRequest, $customParameters)
+	{
+		$requestParameters = array();
+		foreach ($customParameters as $fieldName => $value) {
+			if (
+					(is_null($value) || $value === '') || (
+					is_array($value) && (is_null($value['value']) || $value['value'] === '')
+					)
+			) {
+				continue;
+			}
+
+			if (is_array($value)) {
+				$requestParameter = new SOAP\RequestParameter($fieldName, $value['value'], $value['group']);
+			} else {
+				$requestParameter = new SOAP\RequestParameter($fieldName, $value);
+			}
+
+			$requestParameters[] = $requestParameter;
+		}
+
+		if (empty($requestParameters)) {
+			unset($TransactionRequest->AdditionalParameters);
+			return;
+		} else {
+			$TransactionRequest->AdditionalParameters = $requestParameters;
+		}
+
+		return $TransactionRequest;
 	}
 
 }
