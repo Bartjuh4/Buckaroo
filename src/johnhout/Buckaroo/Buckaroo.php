@@ -258,5 +258,19 @@ class Buckaroo
 		return self::$errors;
 	}
 
+	public function getIssuerArray() {
+		return array(
+			"ABNANL2A" => "ABN AMRO",
+			"ASNBNL21" => "ASN Bank",
+			"FRBKNL2L" => "Friesland Bank",
+			"INGBNL2A" => "ING",
+			"RABONL2U" => "Rabobank",
+			"SNSBNL2A" => "SNS Bank",
+			"RBRBNL21" => "RegioBank",
+			"TRIONL2U" => "Triodos Bank",
+			"FVLBNL22" => "Van Lanschot",
+			"KNABNL2H" => "KNAB bank"
+		);
+	}
 
 }
