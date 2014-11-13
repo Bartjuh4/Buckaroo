@@ -16,7 +16,7 @@
             "src/migrations"
         ],
         "psr-0": {
-            "johnhout\\Buckaroo": "src/"
+            "Bartjuh4\\Buckaroo": "src/"
         }
     },
     "minimum-stability": "dev"
