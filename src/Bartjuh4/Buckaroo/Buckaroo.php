@@ -260,7 +260,6 @@ class Buckaroo {
 				$values = array(
 					"0031" => "ABN AMRO",
 					"0761" => "ASN Bank",
-					"0091" => "Friesland Bank",
 					"0721" => "ING",
 					"0021" => "Rabobank",
 					"0751" => "SNS Bank",
