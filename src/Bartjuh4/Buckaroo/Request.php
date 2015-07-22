@@ -12,19 +12,19 @@ class Request
 
     function __construct()
     {
-        $this->soapClient = new SoapClientWSSEC(\Config::get('buckaroo::wsdl_url'), array('trace' => 1));
+        $this->soapClient = new SoapClientWSSEC(\Config::get('buckaroo.wsdl_url'), array('trace' => 1));
         $this->loadPem();
     }
 
     public function loadPem()
     {
-        $this->soapClient->loadPem(public_path() . '/'. \Config::get('buckaroo::pem_file'));
+        $this->soapClient->loadPem(public_path() . '/'. \Config::get('buckaroo.pem_file'));
     }
 
     public function sendRequest($TransactionRequest, $type)
     {
 
-        if (!\Config::get('buckaroo::website_key')) {
+        if (!\Config::get('buckaroo.website_key')) {
             throw new \Exception('website_key not defined');
         }
 
@@ -32,8 +32,8 @@ class Request
         $Header = new SOAP\Header();
         $Header->MessageControlBlock = new SOAP\MessageControlBlock();
         $Header->MessageControlBlock->Id = '_control';
-        $Header->MessageControlBlock->WebsiteKey = \Config::get('buckaroo::website_key');
-        $Header->MessageControlBlock->Culture = \Config::get('buckaroo::culture');
+        $Header->MessageControlBlock->WebsiteKey = \Config::get('buckaroo.website_key');
+        $Header->MessageControlBlock->Culture = \Config::get('buckaroo.culture');
 
 
         $Header->MessageControlBlock->TimeStamp = time();
@@ -68,7 +68,7 @@ class Request
         $soapHeaders[] = new \SOAPHeader('http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd', 'Security', $Header->Security);
         $this->soapClient->__setSoapHeaders($soapHeaders);
 
-        if (\Config::get('buckaroo::test_mode')) {
+        if (\Config::get('buckaroo.test_mode')) {
             $this->soapClient->__SetLocation('https://testcheckout.buckaroo.nl/soap/');
         } else {
             $this->soapClient->__SetLocation('https://checkout.buckaroo.nl/soap/');

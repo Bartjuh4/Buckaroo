@@ -30,7 +30,7 @@ class BuckarooServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('Bartjuh4/buckaroo');
+		//$this->package('Bartjuh4/buckaroo');
 	}
 
 	/**

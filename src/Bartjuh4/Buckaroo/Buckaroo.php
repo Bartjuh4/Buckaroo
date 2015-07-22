@@ -96,7 +96,7 @@ class Buckaroo {
 		if (!$transactionInfo) {
 			self::addError('Order has not been payed yet.');
 		} else {
-			$this->request = new Request(Config::get('buckaroo::website_key'));
+			$this->request = new Request(Config::get('buckaroo.website_key'));
 
 			$RefundInfoRequest = new SOAP\Body();
 			$RefundInfoRequest->RefundInfo = array();
@@ -106,7 +106,7 @@ class Buckaroo {
 			$BPEresponse = $this->request->sendRequest($RefundInfoRequest, 'refundinfo');
 
 			if ($amount <= $BPEresponse->RefundInfo->MaximumRefundAmount and $BPEresponse->RefundInfo->IsRefundable) {
-				$this->TransactionRequest = new \Bartjuh4\Buckaroo\Request(Config::get('buckaroo::website_key'));
+				$this->TransactionRequest = new \Bartjuh4\Buckaroo\Request(Config::get('buckaroo.website_key'));
 
 				$TransactionRequest = new SOAP\Body();
 				$TransactionRequest->Currency = $BPEresponse->RefundInfo->RefundCurrency;
@@ -181,12 +181,12 @@ class Buckaroo {
 			self::addError('Amount has not been set.');
 		} else {
 			$dataArray['bpe_signature'] = self::createSignature($dataArray);
-			$dataArray['bpe_url'] = ((Config::get('buckaroo::test_mode')) ? Config::get('buckaroo::bpe_post_test_url') : Config::get('buckaroo::bpe_post_url'));
+			$dataArray['bpe_url'] = ((Config::get('buckaroo.test_mode')) ? Config::get('buckaroo.bpe_post_test_url') : Config::get('buckaroo.bpe_post_url'));
 			$dataArray['button'] = $button;
 
 			self::$success = true;
 
-			return \View::make('buckaroo::SubmitForm', $dataArray);
+			return \View::make('buckaroo.SubmitForm', $dataArray);
 		}
 	}
 
@@ -200,10 +200,10 @@ class Buckaroo {
 
 		$hashString = '';
 		// Add additional data to array
-		$data['brq_websitekey'] = Config::get('buckaroo::website_key');
-		$data['brq_currency'] = Config::get('buckaroo::currency');
-		$data['brq_culture'] = Config::get('buckaroo::culture');
-		$data['brq_return'] = Config::get('buckaroo::return_url');
+		$data['brq_websitekey'] = Config::get('buckaroo.website_key');
+		$data['brq_currency'] = Config::get('buckaroo.currency');
+		$data['brq_culture'] = Config::get('buckaroo.culture');
+		$data['brq_return'] = Config::get('buckaroo.return_url');
 
 		ksort($data);
 
@@ -211,7 +211,7 @@ class Buckaroo {
 			$hashString .= strtolower($arrKey) . '=' . $arrValue;
 		}
 
-		$hashString .= Config::get('buckaroo::secret_key');
+		$hashString .= Config::get('buckaroo.secret_key');
 
 		return sha1($hashString);
 	}
@@ -278,17 +278,17 @@ class Buckaroo {
 
 	public function payment($order_id, $amount, $description = '', $method, $method_extra = false)
 	{
-		$this->TransactionRequest = new \Bartjuh4\Buckaroo\Request(Config::get('buckaroo::website_key'));
+		$this->TransactionRequest = new \Bartjuh4\Buckaroo\Request(Config::get('buckaroo.website_key'));
 
 		$invoice_id = str_pad($order_id, 8, '0', STR_PAD_LEFT);
 
 		$TransactionRequest = new SOAP\Body();
-		$TransactionRequest->Currency = Config::get('buckaroo::currency');
+		$TransactionRequest->Currency = Config::get('buckaroo.currency');
 		$TransactionRequest->AmountDebit = $amount;
 		$TransactionRequest->Invoice = 'Invoice' . $invoice_id . '_' . rand(999, 99999);
 		$TransactionRequest->Description = $description;
-		$TransactionRequest->ReturnURL = Config::get('buckaroo::return_url');
-		$TransactionRequest->StartRecurrent = Config::get('buckaroo::start_recurrent');
+		$TransactionRequest->ReturnURL = Config::get('buckaroo.return_url');
+		$TransactionRequest->StartRecurrent = Config::get('buckaroo.start_recurrent');
 
 		$this->customParams = array(
 			'sessionId' => \Session::getId(),
