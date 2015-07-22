@@ -78,7 +78,6 @@ A complete list of possible banks to select from when using ideal
 <select>
 	<option value="ABNANL2A">ABN AMRO</option>
 	<option value="ASNBNL21">ASN Bank</option>
-	<option value="FRBKNL2L">Friesland Bank</option>
 	<option value="INGBNL2A">ING</option>
 	<option value="RABONL2U">Rabobank</option>
 	<option value="SNSBNL2A">SNS Bank</option>
